@@ -1,0 +1,9 @@
+[package]
+name = "schnorr-musig2"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.98"
+bitcoin = "0.32.6"
+thiserror = "2.0.12"
