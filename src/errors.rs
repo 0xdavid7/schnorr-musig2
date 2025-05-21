@@ -12,3 +12,5 @@ pub enum MuSig2Error {
     #[error("Tweaked key is too large")]
     TweakedKeyOverflows,
 }
+
+pub type MuSig2Result<T> = Result<T, MuSig2Error>;

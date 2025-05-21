@@ -8,7 +8,6 @@
 
 use bitcoin::{
     hashes::{sha256::Hash as Sha256Hash, Hash},
-    hex::DisplayHex,
     secp256k1::{self, SecretKey},
     PublicKey, TapTweakHash,
 };
@@ -17,9 +16,12 @@ use k256::{
     Scalar,
 };
 
-use crate::tags::{KeyAggCoeffHash, KeyAggListHash};
-
-use super::{MuSig2, MuSig2Error};
+use crate::{
+    errors::{MuSig2Error, MuSig2Result},
+    scalar::ExtendedSecp256k1Scalar,
+    tags::{KeyAggCoeffHash, KeyAggListHash},
+    MuSig2,
+};
 
 type KeyAggOptionModifer = Box<dyn Fn(&mut KeyAggOption)>;
 
@@ -109,7 +111,7 @@ impl MuSig2<'_> {
         keys: &[PublicKey],
         sort: bool,
         modifiers: Option<&[KeyAggOptionModifer]>,
-    ) -> Result<(AggregateKey, Scalar, Scalar), MuSig2Error> {
+    ) -> MuSig2Result<(AggregateKey, Scalar, Scalar)> {
         let mut opts = KeyAggOption::new();
         if let Some(modifiers) = modifiers {
             opts.apply(modifiers);
@@ -221,7 +223,7 @@ impl MuSig2<'_> {
     /// For example:
     /// Keys = [K1, K2, K3, K1, K2]
     /// Second key index = 1
-    /// Keys[0] -> c_i = H(c_all || K1)
+    /// Key0 -> c_i = H(c_all || K1)
     fn aggregation_coefficient(
         &self,
         key_set: &[PublicKey],
@@ -249,7 +251,7 @@ impl MuSig2<'_> {
         tweak_acc: &mut Scalar,
         tweak: &TapTweakHash,
         x_only: bool,
-    ) -> Result<(), MuSig2Error> {
+    ) -> MuSig2Result<()> {
         // First compute the parity factor based on y-coordinate
         let parity_factor = if x_only && !Self::has_even_y(key) {
             Scalar::ONE.negate()
@@ -257,15 +259,11 @@ impl MuSig2<'_> {
             Scalar::ONE
         };
 
-        let converted_parity_factor = {
-            let mut data: [u8; 32] = [0; 32];
-            data.copy_from_slice(&parity_factor.to_bytes());
-            secp256k1::Scalar::from_be_bytes(data)
-                .map_err(|_| MuSig2Error::Other(anyhow::anyhow!("Invalid parity factor")))?
-        };
+        let secp256k1_scalar =
+            <secp256k1::Scalar as ExtendedSecp256k1Scalar>::from_k256(parity_factor)?;
 
         // Compute g*Q (where g is parity_factor)
-        let mut tweaked_key = key.mul_tweak(self.secp, &converted_parity_factor)?;
+        let mut tweaked_key = key.mul_tweak(self.secp, &secp256k1_scalar)?;
 
         let tweak_scalar = SecretKey::from_slice(tweak.as_byte_array())
             .map_err(|_| MuSig2Error::Other(anyhow::anyhow!("Invalid tweak")))?;
@@ -421,8 +419,6 @@ mod tests {
 
     #[test]
     fn test_tweak_key() {
-        //     pubkeyBytes, _ := hex.DecodeString("02fa4785e10a19dae7c518c69dbac060a22be49a43e8c9b8a71d8f933a91640443")
-
         let mut pubkey = secp256k1::PublicKey::from_str(
             "02fa4785e10a19dae7c518c69dbac060a22be49a43e8c9b8a71d8f933a91640443",
         )
