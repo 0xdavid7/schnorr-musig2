@@ -1,9 +1,9 @@
-mod errors;
-mod keys;
-mod tags;
+pub mod errors;
+pub mod keys;
+pub mod scalar;
+pub mod tags;
 
 use bitcoin::{key::Secp256k1, secp256k1::All};
-pub use errors::*;
 
 pub struct MuSig2<'a> {
     secp: &'a Secp256k1<All>,
