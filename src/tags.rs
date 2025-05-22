@@ -12,7 +12,7 @@ sha256t_hash_newtype! {
     /// Taproot-tagged hash with tag \"KeyAgg coefficient\".
     ///
     /// This is used for computing chanllenge factor for key aggregation.
-    // #[hash_newtype(forward)]
+    #[hash_newtype(forward)]
     pub struct KeyAggCoeffHash(_);
 
     pub struct KeyAggListTag = hash_str("KeyAgg list");
@@ -22,6 +22,18 @@ sha256t_hash_newtype! {
     /// This is used for computing chanllenge factor for key aggregation.
     #[hash_newtype(forward)]
     pub struct KeyAggListHash(_);
+}
+
+sha256t_hash_newtype! {
+    pub struct NonceAuxTag = hash_str("MuSig/aux");
+
+    #[hash_newtype(forward)]
+    pub struct NonceAuxHash(_);
+
+    pub struct NonGenTag = hash_str("MuSig/nonce");
+
+    #[hash_newtype(forward)]
+    pub struct NonGenHash(_);
 }
 
 impl KeyAggListHash {

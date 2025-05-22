@@ -20,7 +20,7 @@ use crate::{
     errors::{MuSig2Error, MuSig2Result},
     scalar::ExtendedSecp256k1Scalar,
     tags::{KeyAggCoeffHash, KeyAggListHash},
-    MuSig2,
+    MuSig2, N_BYTES, N_PUBKEY,
 };
 
 type KeyAggOptionModifer = Box<dyn Fn(&mut KeyAggOption)>;
@@ -235,9 +235,9 @@ impl MuSig2<'_> {
             return bitcoin::secp256k1::Scalar::ONE;
         }
 
-        let mut coefficient_bytes = [0u8; 65];
-        coefficient_bytes[..32].copy_from_slice(challenge_factor.as_ref());
-        coefficient_bytes[32..].copy_from_slice(&target_key.inner.serialize());
+        let mut coefficient_bytes = [0u8; N_BYTES + N_PUBKEY];
+        coefficient_bytes[..N_BYTES].copy_from_slice(challenge_factor.as_ref());
+        coefficient_bytes[N_BYTES..].copy_from_slice(&target_key.inner.serialize());
 
         let hash = KeyAggCoeffHash::hash(&coefficient_bytes);
 
@@ -335,7 +335,7 @@ mod tests {
                 PublicKey::from_slice(
                     &[0x02]
                         .iter()
-                        .chain([0x08; 32].iter())
+                        .chain([0x08; N_BYTES].iter())
                         .copied()
                         .collect::<Vec<u8>>(),
                 )
@@ -343,7 +343,7 @@ mod tests {
                 PublicKey::from_slice(
                     &[0x02]
                         .iter()
-                        .chain([0x01; 32].iter())
+                        .chain([0x01; N_BYTES].iter())
                         .copied()
                         .collect::<Vec<u8>>(),
                 )
@@ -351,7 +351,7 @@ mod tests {
                 PublicKey::from_slice(
                     &[0x02]
                         .iter()
-                        .chain([0x07; 32].iter())
+                        .chain([0x07; N_BYTES].iter())
                         .copied()
                         .collect::<Vec<u8>>(),
                 )
@@ -394,7 +394,7 @@ mod tests {
 
         let options: Vec<KeyAggOptionModifer> =
             vec![Box::new(KeyAggOption::with_tweaks(vec![KeyTweakDesc {
-                tweak: TapTweakHash::from_byte_array([0x02; 32]),
+                tweak: TapTweakHash::from_byte_array([0x02; N_BYTES]),
                 is_x_only: true,
             }]))];
 
@@ -428,7 +428,7 @@ mod tests {
 
         let mut parity_acc = Scalar::ONE;
         let mut tweak_acc = Scalar::ZERO;
-        let tweak = TapTweakHash::from_byte_array([0x1; 32]);
+        let tweak = TapTweakHash::from_byte_array([0x1; N_BYTES]);
 
         MuSig2::new(&secp)
             .tweak_key(&mut pubkey, &mut parity_acc, &mut tweak_acc, &tweak, true)
@@ -453,7 +453,7 @@ mod tests {
     #[test]
     fn test_arithmetic() {
         let one_negated = Scalar::ONE.negate();
-        let mut data: [u8; 32] = [0x00; 32];
+        let mut data: [u8; N_BYTES] = [0x00; N_BYTES];
         // copy one_negated to data
         data.copy_from_slice(&one_negated.to_bytes().as_slice());
 

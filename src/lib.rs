@@ -1,9 +1,13 @@
 pub mod errors;
 pub mod keys;
+pub mod nonces;
 pub mod scalar;
 pub mod tags;
 
 use bitcoin::{key::Secp256k1, secp256k1::All};
+
+const N_BYTES: usize = 32;
+const N_PUBKEY: usize = 33;
 
 pub struct MuSig2<'a> {
     secp: &'a Secp256k1<All>,
